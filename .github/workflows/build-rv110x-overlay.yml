@@ -1,0 +1,49 @@
+name: Build RV110x Overlay Images
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - rv110x-overlay-support
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        board:
+          - luckfox-pico-max
+          - luckfox-pico-mini
+
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Build ${{ matrix.board }} image
+        shell: bash
+        run: >
+          ./compile.sh
+          BOARD=${{ matrix.board }}
+          RELEASE=trixie
+          BRANCH=vendor
+          BUILD_MINIMAL=yes
+          BUILD_DESKTOP=no
+          PREFER_DOCKER=yes
+          KERNEL_CONFIGURE=no
+          SHARE_LOGS=no
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.board }}
+          path: output/images/*
+          if-no-files-found: error
